@@ -1,0 +1,8 @@
+fastapi==0.115.6
+uvicorn==0.34.0
+psycopg2-binary==2.9.10
+paho-mqtt==2.1.0
+sqlalchemy==2.0.36
+python-dotenv==1.0.1
+alembic==1.14.0
+python-multipart==0.0.20
