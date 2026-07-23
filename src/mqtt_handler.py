@@ -51,8 +51,14 @@ class MQTTHandler:
         """Subscribe to topics on successful connection."""
         client.subscribe(settings.MQTT_TOPIC_QUERY)
         client.subscribe(settings.MQTT_TOPIC_CREATE)
+        client.subscribe("warehouse/stock/in")
+        client.subscribe("warehouse/stock/out")
+        client.subscribe("warehouse/stocktake/scan")
+        client.subscribe("warehouse/stocktake/start")
+        client.subscribe("warehouse/stocktake/end")
         logger.info(
-            f"Subscribed to: {settings.MQTT_TOPIC_QUERY}, {settings.MQTT_TOPIC_CREATE}"
+            f"Subscribed to: {settings.MQTT_TOPIC_QUERY}, {settings.MQTT_TOPIC_CREATE}, "
+            "warehouse/stock/in, warehouse/stock/out, warehouse/stocktake/*"
         )
 
     def _on_message(self, client, userdata, msg):
@@ -65,6 +71,16 @@ class MQTTHandler:
                 self._handle_query(payload)
             elif topic == settings.MQTT_TOPIC_CREATE:
                 self._handle_create(payload)
+            elif topic == "warehouse/stock/in":
+                self._handle_stock_in(payload)
+            elif topic == "warehouse/stock/out":
+                self._handle_stock_out(payload)
+            elif topic == "warehouse/stocktake/scan":
+                self._handle_stocktake_scan(payload)
+            elif topic == "warehouse/stocktake/start":
+                self._handle_stocktake_start(payload)
+            elif topic == "warehouse/stocktake/end":
+                self._handle_stocktake_end(payload)
             else:
                 logger.warning(f"Unknown topic: {topic}")
 
@@ -168,6 +184,234 @@ class MQTTHandler:
                     "barcode": item.barcode,
                     "name": item.name,
                 },
+            })
+        finally:
+            db.close()
+
+    def _handle_stock_in(self, payload: dict):
+        """
+        Handle stock-in scan (入庫).
+
+        Payload: {"device_id": "esp32-001", "barcode": "...", "quantity": 10, "purchase_order_id": 5}
+        """
+        device_id = payload.get("device_id", "unknown")
+        barcode = payload.get("barcode")
+        quantity = payload.get("quantity", 1)
+
+        if not barcode:
+            self._publish_response(device_id, {"status": "error", "message": "barcode required"})
+            return
+
+        db = SessionLocal()
+        try:
+            from src.models.item import Item
+            from src.models.inventory import InventoryLog
+
+            item = db.query(Item).filter(Item.barcode == barcode).first()
+            if not item:
+                self._publish_response(device_id, {"status": "error", "message": f"Item {barcode} not found"})
+                return
+
+            before_qty = item.quantity
+            item.quantity += quantity
+            after_qty = item.quantity
+
+            log = InventoryLog(
+                item_id=item.id,
+                action="in",
+                quantity=quantity,
+                before_qty=before_qty,
+                after_qty=after_qty,
+                reference_type="purchase_order" if payload.get("purchase_order_id") else "manual",
+                reference_id=payload.get("purchase_order_id"),
+                notes=f"MQTT scan-in by {device_id}",
+                tenant_id=item.tenant_id,
+            )
+            db.add(log)
+            db.commit()
+
+            self._publish_response(device_id, {
+                "status": "stock_in_ok",
+                "data": {"barcode": barcode, "name": item.name, "quantity": after_qty, "added": quantity},
+            })
+        finally:
+            db.close()
+
+    def _handle_stock_out(self, payload: dict):
+        """
+        Handle stock-out scan (出庫).
+
+        Payload: {"device_id": "esp32-001", "barcode": "...", "quantity": 2, "sales_order_id": 12}
+        """
+        device_id = payload.get("device_id", "unknown")
+        barcode = payload.get("barcode")
+        quantity = payload.get("quantity", 1)
+
+        if not barcode:
+            self._publish_response(device_id, {"status": "error", "message": "barcode required"})
+            return
+
+        db = SessionLocal()
+        try:
+            from src.models.item import Item
+            from src.models.inventory import InventoryLog
+
+            item = db.query(Item).filter(Item.barcode == barcode).first()
+            if not item:
+                self._publish_response(device_id, {"status": "error", "message": f"Item {barcode} not found"})
+                return
+
+            before_qty = item.quantity
+            item.quantity -= quantity
+            after_qty = item.quantity
+
+            log = InventoryLog(
+                item_id=item.id,
+                action="out",
+                quantity=-quantity,
+                before_qty=before_qty,
+                after_qty=after_qty,
+                reference_type="sales_order" if payload.get("sales_order_id") else "manual",
+                reference_id=payload.get("sales_order_id"),
+                notes=f"MQTT scan-out by {device_id}",
+                tenant_id=item.tenant_id,
+            )
+            db.add(log)
+            db.commit()
+
+            self._publish_response(device_id, {
+                "status": "stock_out_ok",
+                "data": {"barcode": barcode, "name": item.name, "quantity": after_qty, "removed": quantity},
+            })
+        finally:
+            db.close()
+
+    def _handle_stocktake_start(self, payload: dict):
+        """
+        Start a stocktake session.
+
+        Payload: {"device_id": "esp32-001", "tenant_id": 1}
+        """
+        device_id = payload.get("device_id", "unknown")
+        tenant_id = payload.get("tenant_id", 1)
+
+        db = SessionLocal()
+        try:
+            from src.models.inventory import StocktakeSession
+            from datetime import date
+            from sqlalchemy import func
+
+            date_str = date.today().strftime("%Y%m%d")
+            count = db.query(func.count(StocktakeSession.id)).filter(
+                StocktakeSession.session_no.like(f"ST-{date_str}-%"),
+                StocktakeSession.tenant_id == tenant_id,
+            ).scalar() or 0
+
+            session = StocktakeSession(
+                session_no=f"ST-{date_str}-{count + 1:03d}",
+                status="counting",
+                tenant_id=tenant_id,
+            )
+            db.add(session)
+            db.commit()
+            db.refresh(session)
+
+            self._publish_response(device_id, {
+                "status": "stocktake_started",
+                "data": {"session_id": session.id, "session_no": session.session_no},
+            })
+        finally:
+            db.close()
+
+    def _handle_stocktake_scan(self, payload: dict):
+        """
+        Record a stocktake scan.
+
+        Payload: {"device_id": "esp32-001", "session_id": 3, "barcode": "...", "actual_qty": 48}
+        """
+        device_id = payload.get("device_id", "unknown")
+        session_id = payload.get("session_id")
+        barcode = payload.get("barcode")
+        actual_qty = payload.get("actual_qty")
+
+        if not all([session_id, barcode, actual_qty is not None]):
+            self._publish_response(device_id, {"status": "error", "message": "session_id, barcode, actual_qty required"})
+            return
+
+        db = SessionLocal()
+        try:
+            from src.models.item import Item
+            from src.models.inventory import StocktakeSession, StocktakeItem
+
+            session = db.query(StocktakeSession).filter(
+                StocktakeSession.id == session_id,
+                StocktakeSession.status == "counting",
+            ).first()
+            if not session:
+                self._publish_response(device_id, {"status": "error", "message": "Session not found or closed"})
+                return
+
+            item = db.query(Item).filter(Item.barcode == barcode).first()
+            if not item:
+                self._publish_response(device_id, {"status": "error", "message": f"Item {barcode} not found"})
+                return
+
+            st_item = StocktakeItem(
+                session_id=session_id,
+                item_id=item.id,
+                system_qty=item.quantity,
+                actual_qty=actual_qty,
+                difference=actual_qty - item.quantity,
+            )
+            db.add(st_item)
+            db.commit()
+
+            self._publish_response(device_id, {
+                "status": "stocktake_scanned",
+                "data": {
+                    "barcode": barcode,
+                    "name": item.name,
+                    "system_qty": item.quantity,
+                    "actual_qty": actual_qty,
+                    "difference": actual_qty - item.quantity,
+                },
+            })
+        finally:
+            db.close()
+
+    def _handle_stocktake_end(self, payload: dict):
+        """
+        End a stocktake session.
+
+        Payload: {"device_id": "esp32-001", "session_id": 3}
+        """
+        device_id = payload.get("device_id", "unknown")
+        session_id = payload.get("session_id")
+
+        if not session_id:
+            self._publish_response(device_id, {"status": "error", "message": "session_id required"})
+            return
+
+        db = SessionLocal()
+        try:
+            from src.models.inventory import StocktakeSession
+            from datetime import datetime
+
+            session = db.query(StocktakeSession).filter(
+                StocktakeSession.id == session_id,
+                StocktakeSession.status == "counting",
+            ).first()
+            if not session:
+                self._publish_response(device_id, {"status": "error", "message": "Session not found or already closed"})
+                return
+
+            session.status = "closed"
+            session.end_time = datetime.now()
+            db.commit()
+
+            self._publish_response(device_id, {
+                "status": "stocktake_ended",
+                "data": {"session_id": session.id, "session_no": session.session_no},
             })
         finally:
             db.close()

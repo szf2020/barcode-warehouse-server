@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}報價單 — 倉管系統{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0"><i class="bi bi-file-earmark-text"></i> 報價單</h4>
+    <a href="/web/quotations/new" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> 新增報價單
+    </a>
+</div>
+
+<!-- Filters -->
+<form action="/web/quotations" method="get" class="mb-3">
+    <div class="row g-2">
+        <div class="col-md-6">
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control" name="search" value="{{ search }}"
+                       placeholder="搜尋單號、備註...">
+            </div>
+        </div>
+        <div class="col-md-4">
+            <select class="form-select" name="status" onchange="this.form.submit()">
+                <option value="">全部狀態</option>
+                <option value="draft" {% if status == 'draft' %}selected{% endif %}>草稿</option>
+                <option value="sent" {% if status == 'sent' %}selected{% endif %}>已送出</option>
+                <option value="accepted" {% if status == 'accepted' %}selected{% endif %}>已接受</option>
+                <option value="rejected" {% if status == 'rejected' %}selected{% endif %}>已拒絕</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-outline-secondary w-100">篩選</button>
+        </div>
+    </div>
+</form>
+
+<small class="text-muted d-block mb-2">共 {{ total }} 筆</small>
+
+<div class="table-responsive">
+    <table class="table table-hover table-striped align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th>單號</th>
+                <th>日期</th>
+                <th>客戶</th>
+                <th class="text-end">金額</th>
+                <th>有效期限</th>
+                <th>狀態</th>
+                <th class="text-center">操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for qt in quotes %}
+            <tr>
+                <td><a href="/web/quotations/{{ qt.id }}"><code>{{ qt.quote_no }}</code></a></td>
+                <td>{{ qt.quote_date.strftime('%Y-%m-%d') }}</td>
+                <td>{{ qt.customer.name if qt.customer else '-' }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(qt.total_amount) }}</td>
+                <td>{{ qt.valid_until.strftime('%Y-%m-%d') if qt.valid_until else '-' }}</td>
+                <td>
+                    {% if qt.status == 'draft' %}
+                    <span class="badge bg-secondary">草稿</span>
+                    {% elif qt.status == 'sent' %}
+                    <span class="badge bg-info">已送出</span>
+                    {% elif qt.status == 'accepted' %}
+                    <span class="badge bg-success">已接受</span>
+                    {% elif qt.status == 'rejected' %}
+                    <span class="badge bg-danger">已拒絕</span>
+                    {% endif %}
+                </td>
+                <td class="text-center">
+                    <a href="/web/quotations/{{ qt.id }}" class="btn btn-sm btn-outline-primary" title="檢視">
+                        <i class="bi bi-eye"></i>
+                    </a>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="7" class="text-center text-muted py-4">
+                    <i class="bi bi-inbox fs-3"></i>
+                    <p class="mt-2 mb-0">尚無報價單</p>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

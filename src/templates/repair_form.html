@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}新增維修工單 — 倉管系統{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-plus-lg"></i> 新增維修工單</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" action="/web/repairs/new">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">客戶 <span class="text-danger">*</span></label>
+                            <select class="form-select" name="customer_id" required>
+                                <option value="">-- 選擇客戶 --</option>
+                                {% for c in customers %}
+                                <option value="{{ c.id }}">{{ c.code }} — {{ c.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">收件日期</label>
+                            <input type="date" class="form-control" name="received_date">
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">送修品名 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="item_name" required placeholder="e.g. 大同冷氣 R32">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">品牌</label>
+                            <input type="text" class="form-control" name="brand">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">型號</label>
+                            <input type="text" class="form-control" name="model">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">序號</label>
+                            <input type="text" class="form-control" name="serial_no">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">故障描述 <span class="text-danger">*</span></label>
+                            <textarea class="form-control" name="fault_desc" rows="3" required placeholder="客戶描述的故障狀況"></textarea>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">保固到期日</label>
+                            <input type="date" class="form-control" name="warranty_until">
+                        </div>
+                    </div>
+                    <div class="mt-4 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> 建立</button>
+                        <a href="/web/repairs" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> 返回</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

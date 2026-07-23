@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}帳務管理 — 倉管系統{% endblock %}
+
+{% block content %}
+<h4 class="mb-3"><i class="bi bi-cash-stack"></i> 帳務管理</h4>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card border-primary">
+            <div class="card-body text-center">
+                <h6 class="text-muted">應收帳款（未結）</h6>
+                <h3 class="text-primary">${{ "{:,.0f}".format(summary.total_receivable) }}</h3>
+                <small class="text-muted">{{ summary.receivable_count }} 筆</small>
+                {% if summary.overdue_receivable > 0 %}
+                <br><small class="text-danger"><i class="bi bi-exclamation-triangle"></i> {{ summary.overdue_receivable }} 筆逾期</small>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-danger">
+            <div class="card-body text-center">
+                <h6 class="text-muted">應付帳款（未結）</h6>
+                <h3 class="text-danger">${{ "{:,.0f}".format(summary.total_payable) }}</h3>
+                <small class="text-muted">{{ summary.payable_count }} 筆</small>
+                {% if summary.overdue_payable > 0 %}
+                <br><small class="text-danger"><i class="bi bi-exclamation-triangle"></i> {{ summary.overdue_payable }} 筆逾期</small>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-success">
+            <div class="card-body text-center">
+                <h6 class="text-muted">淨額（應收 - 應付）</h6>
+                {% set net = summary.total_receivable - summary.total_payable %}
+                <h3 class="{{ 'text-success' if net >= 0 else 'text-danger' }}">${{ "{:,.0f}".format(net) }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <a href="/web/accounting/receivables" class="btn btn-outline-primary w-100 py-3">
+            <i class="bi bi-arrow-down-circle fs-4"></i><br>
+            應收帳款明細
+        </a>
+    </div>
+    <div class="col-md-6">
+        <a href="/web/accounting/payables" class="btn btn-outline-danger w-100 py-3">
+            <i class="bi bi-arrow-up-circle fs-4"></i><br>
+            應付帳款明細
+        </a>
+    </div>
+</div>
+{% endblock %}

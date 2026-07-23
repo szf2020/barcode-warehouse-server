@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}新增進貨單 — 倉管系統{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-plus-lg"></i> 新增進貨單</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" action="/web/purchases/new">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="supplier_id" class="form-label">供應商 <span class="text-danger">*</span></label>
+                            <select class="form-select" id="supplier_id" name="supplier_id" required>
+                                <option value="">-- 選擇供應商 --</option>
+                                {% for s in suppliers %}
+                                <option value="{{ s.id }}">{{ s.code }} — {{ s.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="order_date" class="form-label">進貨日期</label>
+                            <input type="date" class="form-control" id="order_date" name="order_date">
+                            <small class="text-muted">留空預設今天</small>
+                        </div>
+                        <div class="col-12">
+                            <label for="notes" class="form-label">備註</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="2"></textarea>
+                        </div>
+                    </div>
+                    <div class="mt-4 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg"></i> 建立
+                        </button>
+                        <a href="/web/purchases" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> 返回
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

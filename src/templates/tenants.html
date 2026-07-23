@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}廠商管理 — 倉管系統{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0"><i class="bi bi-building"></i> 廠商管理</h4>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newTenantModal">
+        <i class="bi bi-plus-lg"></i> 新增廠商
+    </button>
+</div>
+
+<!-- Tenants table -->
+<div class="table-responsive">
+    <table class="table table-hover table-striped align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>廠商名稱</th>
+                <th>代碼</th>
+                <th>狀態</th>
+                <th>建立時間</th>
+                <th class="text-center">操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tenant in tenants %}
+            <tr>
+                <td>{{ tenant.id }}</td>
+                <td>{{ tenant.name }}</td>
+                <td><code>{{ tenant.code }}</code></td>
+                <td>
+                    {% if tenant.is_active %}
+                    <span class="badge bg-success">啟用</span>
+                    {% else %}
+                    <span class="badge bg-secondary">停用</span>
+                    {% endif %}
+                </td>
+                <td><small>{{ tenant.created_at.strftime('%Y-%m-%d %H:%M') }}</small></td>
+                <td class="text-center">
+                    <form action="/web/tenants/{{ tenant.id }}/toggle" method="post" class="d-inline">
+                        {% if tenant.is_active %}
+                        <button type="submit" class="btn btn-sm btn-outline-warning" title="停用">
+                            <i class="bi bi-pause-circle"></i>
+                        </button>
+                        {% else %}
+                        <button type="submit" class="btn btn-sm btn-outline-success" title="啟用">
+                            <i class="bi bi-play-circle"></i>
+                        </button>
+                        {% endif %}
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6" class="text-center text-muted py-4">
+                    <i class="bi bi-building fs-3"></i>
+                    <p class="mt-2 mb-0">尚無廠商資料</p>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- New Tenant Modal -->
+<div class="modal fade" id="newTenantModal" tabindex="-1" aria-labelledby="newTenantModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="/web/tenants/new" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="newTenantModalLabel">
+                        <i class="bi bi-building"></i> 新增廠商
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="tenantName" class="form-label">廠商名稱 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="tenantName" name="name"
+                               required placeholder="例：大毅科技">
+                    </div>
+                    <div class="mb-3">
+                        <label for="tenantCode" class="form-label">廠商代碼 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="tenantCode" name="code"
+                               required placeholder="例：DAYI（唯一識別碼）">
+                        <small class="text-muted">用於系統識別，建立後不可修改</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg"></i> 建立
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

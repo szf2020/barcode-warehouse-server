@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}{{ '編輯客戶' if customer else '新增客戶' }} — 倉管系統{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-{{ 'pencil' if customer else 'plus-lg' }}"></i>
+                    {{ '編輯客戶' if customer else '新增客戶' }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post"
+                      action="/web/customers/{{ customer.id ~ '/edit' if customer else 'new' }}">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="code" class="form-label">客戶編號 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="code" name="code"
+                                   value="{{ customer.code if customer else '' }}" required
+                                   placeholder="e.g. C001">
+                        </div>
+                        <div class="col-md-8">
+                            <label for="name" class="form-label">客戶名稱 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="name" name="name"
+                                   value="{{ customer.name if customer else '' }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="contact_person" class="form-label">聯絡人</label>
+                            <input type="text" class="form-control" id="contact_person" name="contact_person"
+                                   value="{{ customer.contact_person or '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="phone" class="form-label">電話</label>
+                            <input type="text" class="form-control" id="phone" name="phone"
+                                   value="{{ customer.phone or '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="tax_id" class="form-label">統一編號</label>
+                            <input type="text" class="form-control" id="tax_id" name="tax_id"
+                                   value="{{ customer.tax_id or '' }}" maxlength="8">
+                        </div>
+                        <div class="col-md-6">
+                            <!-- spacer -->
+                        </div>
+                        <div class="col-12">
+                            <label for="address" class="form-label">地址</label>
+                            <input type="text" class="form-control" id="address" name="address"
+                                   value="{{ customer.address or '' }}">
+                        </div>
+                        <div class="col-12">
+                            <label for="notes" class="form-label">備註</label>
+                            <textarea class="form-control" id="notes" name="notes"
+                                      rows="2">{{ customer.notes or '' }}</textarea>
+                        </div>
+                    </div>
+                    <div class="mt-4 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg"></i> {{ '儲存' if customer else '建立' }}
+                        </button>
+                        <a href="/web/customers" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> 返回
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

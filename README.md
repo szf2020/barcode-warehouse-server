@@ -36,6 +36,22 @@
 
 ## Installation
 
+### 安裝 Mosquitto MQTT Broker
+
+```bash
+# Ubuntu / Debian
+sudo apt install mosquitto mosquitto-clients
+
+# 確認服務已啟動（預設監聽 port 1883）
+sudo systemctl status mosquitto
+
+# 手動啟動 / 停止
+sudo systemctl start mosquitto
+sudo systemctl stop mosquitto
+```
+
+### 安裝 Python 專案
+
 ```bash
 # Clone
 git clone https://github.com/JiangAlex/barcode-warehouse-server.git
@@ -50,7 +66,7 @@ pip install -r requirements.txt
 
 # Configure environment
 cp .env.example .env
-# Edit .env with your PostgreSQL and MQTT settings
+# Edit .env — 設定資料庫類型 (sqlite/postgresql) 與 MQTT 連線
 ```
 
 ## Run

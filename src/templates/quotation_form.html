@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}新增報價單 — 倉管系統{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-plus-lg"></i> 新增報價單</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" action="/web/quotations/new">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="customer_id" class="form-label">客戶 <span class="text-danger">*</span></label>
+                            <select class="form-select" id="customer_id" name="customer_id" required>
+                                <option value="">-- 選擇客戶 --</option>
+                                {% for c in customers %}
+                                <option value="{{ c.id }}">{{ c.code }} — {{ c.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="quote_date" class="form-label">報價日期</label>
+                            <input type="date" class="form-control" id="quote_date" name="quote_date">
+                            <small class="text-muted">留空預設今天</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="valid_until" class="form-label">有效期限</label>
+                            <input type="date" class="form-control" id="valid_until" name="valid_until">
+                        </div>
+                        <div class="col-12">
+                            <label for="notes" class="form-label">備註</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="2"></textarea>
+                        </div>
+                    </div>
+                    <div class="mt-4 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg"></i> 建立
+                        </button>
+                        <a href="/web/quotations" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> 返回
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

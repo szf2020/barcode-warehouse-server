@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% block title %}報價單 {{ qt.quote_no }} — 倉管系統{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">
+        <i class="bi bi-file-earmark-text"></i> {{ qt.quote_no }}
+        {% if qt.status == 'draft' %}
+        <span class="badge bg-secondary">草稿</span>
+        {% elif qt.status == 'sent' %}
+        <span class="badge bg-info">已送出</span>
+        {% elif qt.status == 'accepted' %}
+        <span class="badge bg-success">已接受</span>
+        {% elif qt.status == 'rejected' %}
+        <span class="badge bg-danger">已拒絕</span>
+        {% endif %}
+    </h4>
+    <a href="/web/quotations" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> 返回列表
+    </a>
+</div>
+
+<!-- Order info -->
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <strong>客戶：</strong> {{ qt.customer.name if qt.customer else '-' }}
+            </div>
+            <div class="col-md-3">
+                <strong>日期：</strong> {{ qt.quote_date.strftime('%Y-%m-%d') }}
+            </div>
+            <div class="col-md-3">
+                <strong>有效期限：</strong> {{ qt.valid_until.strftime('%Y-%m-%d') if qt.valid_until else '無' }}
+            </div>
+            <div class="col-md-3">
+                <strong>總金額：</strong> <span class="fs-5 text-primary">${{ "{:,.0f}".format(qt.total_amount) }}</span>
+            </div>
+        </div>
+        {% if qt.notes %}
+        <div class="mt-2"><strong>備註：</strong> {{ qt.notes }}</div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Action buttons -->
+<div class="mb-3 d-flex gap-2 flex-wrap">
+    {% if qt.status == 'draft' %}
+    <form method="post" action="/web/quotations/{{ qt.id }}/send" class="d-inline">
+        <button type="submit" class="btn btn-info btn-sm" onclick="return confirm('送出報價單？')">
+            <i class="bi bi-send"></i> 送出
+        </button>
+    </form>
+    <form method="post" action="/web/quotations/{{ qt.id }}/accept" class="d-inline">
+        <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('標記為已接受？')">
+            <i class="bi bi-check-circle"></i> 接受
+        </button>
+    </form>
+    <form method="post" action="/web/quotations/{{ qt.id }}/delete" class="d-inline">
+        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('刪除此報價單？')">
+            <i class="bi bi-trash"></i> 刪除
+        </button>
+    </form>
+    {% elif qt.status == 'sent' %}
+    <form method="post" action="/web/quotations/{{ qt.id }}/accept" class="d-inline">
+        <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('客戶接受？')">
+            <i class="bi bi-check-circle"></i> 接受
+        </button>
+    </form>
+    <form method="post" action="/web/quotations/{{ qt.id }}/reject" class="d-inline">
+        <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('客戶拒絕？')">
+            <i class="bi bi-x-circle"></i> 拒絕
+        </button>
+    </form>
+    {% elif qt.status == 'accepted' %}
+    <a href="/web/sales/new?from_quotation={{ qt.id }}" class="btn btn-primary btn-sm">
+        <i class="bi bi-arrow-right-circle"></i> 轉為銷貨單
+    </a>
+    {% endif %}
+</div>
+
+<!-- Lines table -->
+<div class="card">
+    <div class="card-header">
+        <h6 class="mb-0">明細項目</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>品項</th>
+                        <th class="text-end">數量</th>
+                        <th class="text-end">單價</th>
+                        <th class="text-end">金額</th>
+                        <th>備註</th>
+                        {% if qt.status == 'draft' %}
+                        <th class="text-center">操作</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for line in qt.lines %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ line.item.name if line.item else '?' }} <small class="text-muted">({{ line.item.barcode if line.item else '' }})</small></td>
+                        <td class="text-end">{{ line.quantity }}</td>
+                        <td class="text-end">{{ "{:,.0f}".format(line.unit_price) }}</td>
+                        <td class="text-end">{{ "{:,.0f}".format(line.amount) }}</td>
+                        <td><small>{{ line.notes or '' }}</small></td>
+                        {% if qt.status == 'draft' %}
+                        <td class="text-center">
+                            <form method="post" action="/web/quotations/{{ qt.id }}/lines/{{ line.id }}/delete" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="刪除"
+                                        onclick="return confirm('刪除此明細？')">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </form>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="{% if qt.status == 'draft' %}7{% else %}6{% endif %}" class="text-center text-muted py-3">
+                            尚無明細項目
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-light">
+                    <tr>
+                        <th colspan="4" class="text-end">合計</th>
+                        <th class="text-end">${{ "{:,.0f}".format(qt.total_amount) }}</th>
+                        <th colspan="{% if qt.status == 'draft' %}2{% else %}1{% endif %}"></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add line form (draft only) -->
+{% if qt.status == 'draft' %}
+<div class="card mt-3">
+    <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-plus-lg"></i> 新增明細</h6>
+    </div>
+    <div class="card-body">
+        <form method="post" action="/web/quotations/{{ qt.id }}/lines/add">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-4">
+                    <label for="item_id" class="form-label">品項</label>
+                    <select class="form-select" id="item_id" name="item_id" required>
+                        <option value="">-- 選擇品項 --</option>
+                        {% for item in items %}
+                        <option value="{{ item.id }}">{{ item.barcode }} — {{ item.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="quantity" class="form-label">數量</label>
+                    <input type="number" class="form-control" id="quantity" name="quantity"
+                           value="1" min="1" required>
+                </div>
+                <div class="col-md-2">
+                    <label for="unit_price" class="form-label">單價</label>
+                    <input type="number" class="form-control" id="unit_price" name="unit_price"
+                           value="0" min="0" step="1" required>
+                </div>
+                <div class="col-md-2">
+                    <label for="line_notes" class="form-label">備註</label>
+                    <input type="text" class="form-control" id="line_notes" name="notes">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="bi bi-plus"></i> 加入
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

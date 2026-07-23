@@ -2,10 +2,14 @@
 
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import List
 
 from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+from starlette.middleware.sessions import SessionMiddleware
 
 from src.config import settings
 from src.database import get_db, init_db
@@ -18,6 +22,8 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+BASE_DIR = Path(__file__).resolve().parent
 
 
 @asynccontextmanager
@@ -41,6 +47,31 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+# ─── Middleware ──────────────────────────────────────────────────────────────
+app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
+
+# ─── Static Files & Templates ───────────────────────────────────────────────
+app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
+templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+
+# ─── Web Routes (Frontend) ──────────────────────────────────────────────────
+from src.routes.web import router as web_router  # noqa: E402
+from src.routes.partners import router as partners_router  # noqa: E402
+from src.routes.purchases import router as purchases_router  # noqa: E402
+from src.routes.quotations import router as quotations_router  # noqa: E402
+from src.routes.sales import router as sales_router  # noqa: E402
+from src.routes.accounting import router as accounting_router  # noqa: E402
+from src.routes.repairs import router as repairs_router  # noqa: E402
+from src.routes.printing import router as printing_router  # noqa: E402
+app.include_router(web_router)
+app.include_router(partners_router)
+app.include_router(purchases_router)
+app.include_router(quotations_router)
+app.include_router(sales_router)
+app.include_router(accounting_router)
+app.include_router(repairs_router)
+app.include_router(printing_router)
 
 
 # ─── REST API Endpoints ─────────────────────────────────────────────────────

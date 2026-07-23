@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}應收帳款 — 倉管系統{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0"><i class="bi bi-arrow-down-circle"></i> 應收帳款</h4>
+    <a href="/web/accounting" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> 帳務總覽
+    </a>
+</div>
+
+<form action="/web/accounting/receivables" method="get" class="mb-3">
+    <select class="form-select w-auto d-inline-block" name="status" onchange="this.form.submit()">
+        <option value="">全部狀態</option>
+        <option value="unpaid" {% if status == 'unpaid' %}selected{% endif %}>未收</option>
+        <option value="partial" {% if status == 'partial' %}selected{% endif %}>部分收</option>
+        <option value="paid" {% if status == 'paid' %}selected{% endif %}>已結清</option>
+    </select>
+</form>
+
+<small class="text-muted d-block mb-2">共 {{ total }} 筆</small>
+
+<div class="table-responsive">
+    <table class="table table-hover table-striped align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th>銷貨單</th>
+                <th>客戶</th>
+                <th class="text-end">應收金額</th>
+                <th class="text-end">已收金額</th>
+                <th class="text-end">餘額</th>
+                <th>到期日</th>
+                <th>狀態</th>
+                <th class="text-center">收款</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in items %}
+            <tr>
+                <td><a href="/web/sales/{{ r.sales_order_id }}"><code>{{ r.sales_order.order_no if r.sales_order else '-' }}</code></a></td>
+                <td>{{ r.customer.name if r.customer else '-' }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(r.amount) }}</td>
+                <td class="text-end">{{ "{:,.0f}".format(r.paid_amount) }}</td>
+                <td class="text-end fw-bold">{{ "{:,.0f}".format(r.amount - r.paid_amount) }}</td>
+                <td>{{ r.due_date.strftime('%Y-%m-%d') if r.due_date else '-' }}</td>
+                <td>
+                    {% if r.status == 'unpaid' %}<span class="badge bg-warning text-dark">未收</span>
+                    {% elif r.status == 'partial' %}<span class="badge bg-info">部分收</span>
+                    {% elif r.status == 'paid' %}<span class="badge bg-success">已結清</span>
+                    {% endif %}
+                </td>
+                <td class="text-center">
+                    {% if r.status in ['unpaid', 'partial'] %}
+                    <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal"
+                            data-bs-target="#payModal" data-id="{{ r.id }}"
+                            data-balance="{{ (r.amount - r.paid_amount)|round(0) }}">
+                        <i class="bi bi-plus-circle"></i>
+                    </button>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="8" class="text-center text-muted py-4">尚無應收帳款</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pay Modal -->
+<div class="modal fade" id="payModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="payForm" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-plus-circle"></i> 收款</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">收款金額</label>
+                        <input type="number" class="form-control" name="amount" id="payAmount" min="1" step="1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">收款方式</label>
+                        <select class="form-select" name="payment_method">
+                            <option value="cash">現金</option>
+                            <option value="transfer">匯款</option>
+                            <option value="check">支票</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">收款日期</label>
+                        <input type="date" class="form-control" name="payment_date">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">備註</label>
+                        <input type="text" class="form-control" name="notes">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-success">確認收款</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.getElementById('payModal').addEventListener('show.bs.modal', function(e) {
+    const btn = e.relatedTarget;
+    const id = btn.getAttribute('data-id');
+    const balance = btn.getAttribute('data-balance');
+    document.getElementById('payForm').action = '/web/accounting/receivables/' + id + '/pay';
+    document.getElementById('payAmount').value = balance;
+    document.getElementById('payAmount').max = balance;
+});
+</script>
+{% endblock %}

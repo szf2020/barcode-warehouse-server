@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}{% if item %}編輯品項{% else %}新增品項{% endif %} — 倉管系統{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex align-items-center mb-3">
+            <a href="/web/items" class="btn btn-outline-secondary me-3">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <h4 class="mb-0">
+                {% if item %}
+                <i class="bi bi-pencil"></i> 編輯品項
+                {% else %}
+                <i class="bi bi-plus-lg"></i> 新增品項
+                {% endif %}
+            </h4>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <form action="{% if item %}/web/items/{{ item.barcode }}/edit{% else %}/web/items/new{% endif %}" method="post">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="barcode" class="form-label">條碼 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="barcode" name="barcode"
+                                   value="{{ form_data.barcode if form_data else (item.barcode if item else '') }}"
+                                   {% if item %}readonly{% endif %}
+                                   required placeholder="掃描或輸入條碼">
+                            {% if item %}
+                            <small class="text-muted">條碼建立後無法修改</small>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="name" class="form-label">品名 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="name" name="name"
+                                   value="{{ form_data.name if form_data else (item.name if item else '') }}"
+                                   required placeholder="例：電阻 10kΩ">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="spec" class="form-label">規格</label>
+                            <input type="text" class="form-control" id="spec" name="spec"
+                                   value="{{ form_data.spec if form_data else (item.spec if item else '') }}"
+                                   placeholder="例：0805 1/8W">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="quantity" class="form-label">數量</label>
+                            <input type="number" class="form-control" id="quantity" name="quantity"
+                                   value="{{ form_data.quantity if form_data else (item.quantity if item else 0) }}"
+                                   min="0">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="location" class="form-label">儲位</label>
+                            <input type="text" class="form-control" id="location" name="location"
+                                   value="{{ form_data.location if form_data else (item.location if item else '') }}"
+                                   placeholder="例：A-01-03">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="supplier" class="form-label">供應商</label>
+                            <input type="text" class="form-control" id="supplier" name="supplier"
+                                   value="{{ form_data.supplier if form_data else (item.supplier if item else '') }}"
+                                   placeholder="例：大毅科技">
+                        </div>
+                    </div>
+
+                    {% if item %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">建立時間</label>
+                            <p class="form-control-plaintext">{{ item.date_in.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">最後更新</label>
+                            <p class="form-control-plaintext">{{ item.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <hr>
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="/web/items" class="btn btn-secondary">取消</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg"></i>
+                            {% if item %}儲存變更{% else %}建立品項{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

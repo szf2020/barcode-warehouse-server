@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}維修單 {{ ro.repair_no }} — 倉管系統{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">
+        <i class="bi bi-wrench-adjustable"></i> {{ ro.repair_no }}
+        {% set sc = {'received':'secondary','diagnosing':'info','repairing':'primary','waiting_parts':'warning','done':'success','returned':'dark'} %}
+        <span class="badge bg-{{ sc.get(ro.status, 'secondary') }}">{{ status_labels.get(ro.status, ro.status) }}</span>
+    </h4>
+    <a href="/web/repairs" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> 返回列表</a>
+</div>
+
+<!-- Info card -->
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row g-2">
+            <div class="col-md-3"><strong>客戶：</strong> {{ ro.customer.name if ro.customer else '-' }}</div>
+            <div class="col-md-3"><strong>收件日：</strong> {{ ro.received_date.strftime('%Y-%m-%d') }}</div>
+            <div class="col-md-3"><strong>品名：</strong> {{ ro.item_name }}</div>
+            <div class="col-md-3"><strong>品牌/型號：</strong> {{ ro.brand or '' }} {{ ro.model or '' }}</div>
+            <div class="col-md-3"><strong>序號：</strong> {{ ro.serial_no or '-' }}</div>
+            <div class="col-md-3"><strong>保固到期：</strong> {{ ro.warranty_until.strftime('%Y-%m-%d') if ro.warranty_until else '無' }}</div>
+            <div class="col-md-3"><strong>完工日：</strong> {{ ro.completed_date.strftime('%Y-%m-%d') if ro.completed_date else '-' }}</div>
+            <div class="col-md-3"><strong>取件日：</strong> {{ ro.returned_date.strftime('%Y-%m-%d') if ro.returned_date else '-' }}</div>
+        </div>
+        <div class="mt-2"><strong>故障描述：</strong> {{ ro.fault_desc }}</div>
+    </div>
+</div>
+
+<!-- Status transitions -->
+{% if valid_transitions %}
+<div class="mb-3 d-flex gap-2 flex-wrap">
+    {% for t in valid_transitions %}
+    <form method="post" action="/web/repairs/{{ ro.id }}/status" class="d-inline">
+        <input type="hidden" name="new_status" value="{{ t }}">
+        <button type="submit" class="btn btn-sm btn-outline-primary"
+                onclick="return confirm('將狀態更新為「{{ status_labels.get(t, t) }}」？')">
+            → {{ status_labels.get(t, t) }}
+        </button>
+    </form>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Repair details form -->
+<div class="card mb-3">
+    <div class="card-header"><h6 class="mb-0">維修內容 & 工資</h6></div>
+    <div class="card-body">
+        <form method="post" action="/web/repairs/{{ ro.id }}/details">
+            <div class="row g-2">
+                <div class="col-md-9">
+                    <label class="form-label">維修說明</label>
+                    <textarea class="form-control" name="repair_desc" rows="2">{{ ro.repair_desc or '' }}</textarea>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">工資</label>
+                    <input type="number" class="form-control" name="labor_fee" value="{{ ro.labor_fee|int }}" min="0">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm mt-2"><i class="bi bi-check-lg"></i> 更新</button>
+        </form>
+    </div>
+</div>
+
+<!-- Fee summary -->
+<div class="alert alert-light border">
+    <strong>工資：</strong> ${{ "{:,.0f}".format(ro.labor_fee) }} ＋
+    <strong>零件費：</strong> ${{ "{:,.0f}".format(ro.parts_fee) }} ＝
+    <strong class="fs-5">總計 ${{ "{:,.0f}".format(ro.total_fee) }}</strong>
+</div>
+
+<!-- Parts table -->
+<div class="card mb-3">
+    <div class="card-header"><h6 class="mb-0">零件明細</h6></div>
+    <div class="card-body p-0">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>#</th>
+                    <th>零件名稱</th>
+                    <th class="text-end">數量</th>
+                    <th class="text-end">單價</th>
+                    <th class="text-end">金額</th>
+                    <th class="text-center">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in ro.parts %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ p.part_name }} {% if p.item %}<small class="text-muted">(庫存品)</small>{% endif %}</td>
+                    <td class="text-end">{{ p.quantity }}</td>
+                    <td class="text-end">{{ "{:,.0f}".format(p.unit_price) }}</td>
+                    <td class="text-end">{{ "{:,.0f}".format(p.amount) }}</td>
+                    <td class="text-center">
+                        <form method="post" action="/web/repairs/{{ ro.id }}/parts/{{ p.id }}/delete" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('刪除？')"><i class="bi bi-x-lg"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="text-center text-muted py-3">尚無零件</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add part form -->
+<div class="card">
+    <div class="card-header"><h6 class="mb-0"><i class="bi bi-plus-lg"></i> 新增零件</h6></div>
+    <div class="card-body">
+        <form method="post" action="/web/repairs/{{ ro.id }}/parts/add">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label">零件名稱</label>
+                    <input type="text" class="form-control" name="part_name" required>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">庫存品項 (選填)</label>
+                    <select class="form-select" name="item_id">
+                        <option value="">無</option>
+                        {% for item in items %}
+                        <option value="{{ item.id }}">{{ item.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">數量</label>
+                    <input type="number" class="form-control" name="quantity" value="1" min="1">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">單價</label>
+                    <input type="number" class="form-control" name="unit_price" value="0" min="0">
+                </div>
+                <div class="col-md-1">
+                    <label class="form-label">備註</label>
+                    <input type="text" class="form-control" name="notes">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-success w-100"><i class="bi bi-plus"></i> 加入</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

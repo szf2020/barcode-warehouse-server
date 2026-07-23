@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}維修工單 — 倉管系統{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0"><i class="bi bi-wrench-adjustable"></i> 維修工單</h4>
+    <a href="/web/repairs/new" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> 新增工單
+    </a>
+</div>
+
+<form action="/web/repairs" method="get" class="mb-3">
+    <div class="row g-2">
+        <div class="col-md-6">
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control" name="search" value="{{ search }}"
+                       placeholder="搜尋單號、品名、序號、故障描述...">
+            </div>
+        </div>
+        <div class="col-md-4">
+            <select class="form-select" name="status" onchange="this.form.submit()">
+                <option value="">全部狀態</option>
+                {% for k, v in status_labels.items() %}
+                <option value="{{ k }}" {% if status == k %}selected{% endif %}>{{ v }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-outline-secondary w-100">篩選</button>
+        </div>
+    </div>
+</form>
+
+<small class="text-muted d-block mb-2">共 {{ total }} 筆</small>
+
+<div class="table-responsive">
+    <table class="table table-hover table-striped align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th>單號</th>
+                <th>收件日</th>
+                <th>客戶</th>
+                <th>送修品名</th>
+                <th>狀態</th>
+                <th class="text-end">費用</th>
+                <th class="text-center">操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ro in orders %}
+            <tr>
+                <td><a href="/web/repairs/{{ ro.id }}"><code>{{ ro.repair_no }}</code></a></td>
+                <td>{{ ro.received_date.strftime('%Y-%m-%d') }}</td>
+                <td>{{ ro.customer.name if ro.customer else '-' }}</td>
+                <td>{{ ro.item_name }}</td>
+                <td>
+                    {% set sc = {'received':'secondary','diagnosing':'info','repairing':'primary','waiting_parts':'warning','done':'success','returned':'dark'} %}
+                    <span class="badge bg-{{ sc.get(ro.status, 'secondary') }}">{{ status_labels.get(ro.status, ro.status) }}</span>
+                </td>
+                <td class="text-end">{{ "{:,.0f}".format(ro.total_fee) }}</td>
+                <td class="text-center">
+                    <a href="/web/repairs/{{ ro.id }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="text-center text-muted py-4"><i class="bi bi-inbox fs-3"></i><p class="mt-2 mb-0">尚無維修工單</p></td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
