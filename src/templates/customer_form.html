@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ '編輯客戶' if customer else '新增客戶' }} — 倉管系統{% endblock %}
+{% block title %}{{ '編輯客戶' if customer else '新增客戶' }} — SoftSnail 倉管系統{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
@@ -18,7 +18,7 @@
                         <div class="col-md-4">
                             <label for="code" class="form-label">客戶編號 <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="code" name="code"
-                                   value="{{ customer.code if customer else '' }}" required
+                                   value="{{ customer.code if customer else next_code }}" required
                                    placeholder="e.g. C001">
                         </div>
                         <div class="col-md-8">

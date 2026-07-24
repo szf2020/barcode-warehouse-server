@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Request, Depends, Form
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 from typing import Optional
 
 from src.database import get_db
@@ -11,6 +11,25 @@ from src.models import User, Customer, Supplier
 from src.routes.web import require_login, templates, ctx, add_flash
 
 router = APIRouter(prefix="/web", tags=["partners"])
+
+
+def _next_code(db: Session, model, prefix: str, tenant_id: int) -> str:
+    """Auto-generate next sequential code like C001, S001."""
+    last = db.query(model.code).filter(
+        model.tenant_id == tenant_id,
+        model.code.like(f"{prefix}%"),
+    ).order_by(model.code.desc()).first()
+
+    if last and last[0]:
+        # Extract number part
+        try:
+            num = int(last[0].replace(prefix, "")) + 1
+        except ValueError:
+            num = 1
+    else:
+        num = 1
+
+    return f"{prefix}{num:03d}"
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -50,9 +69,10 @@ def customer_new_form(
     user: User = Depends(require_login),
 ):
     """New customer form."""
+    next_code = _next_code(db, Customer, "C", user.tenant_id)
     return templates.TemplateResponse(
         "customer_form.html",
-        ctx(request, user, customer=None, active_page="customers"),
+        ctx(request, user, customer=None, next_code=next_code, active_page="customers"),
     )
 
 
@@ -215,9 +235,10 @@ def supplier_new_form(
     user: User = Depends(require_login),
 ):
     """New supplier form."""
+    next_code = _next_code(db, Supplier, "S", user.tenant_id)
     return templates.TemplateResponse(
         "supplier_form.html",
-        ctx(request, user, supplier=None, active_page="suppliers"),
+        ctx(request, user, supplier=None, next_code=next_code, active_page="suppliers"),
     )
 
 

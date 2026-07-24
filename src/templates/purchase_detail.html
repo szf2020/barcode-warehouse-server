@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}進貨單 {{ po.order_no }} — 倉管系統{% endblock %}
+{% block title %}進貨單 {{ po.order_no }} — SoftSnail 倉管系統{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -85,6 +85,7 @@
                 <thead class="table-light">
                     <tr>
                         <th>#</th>
+                        <th>條碼</th>
                         <th>品項</th>
                         <th class="text-end">數量</th>
                         <th class="text-end">單價</th>
@@ -99,7 +100,8 @@
                     {% for line in po.lines %}
                     <tr>
                         <td>{{ loop.index }}</td>
-                        <td>{{ line.item.name if line.item else '?' }} <small class="text-muted">({{ line.item.barcode if line.item else '' }})</small></td>
+                        <td><code>{{ line.item.barcode if line.item else '' }}</code></td>
+                        <td>{{ line.item.name if line.item else '?' }}</td>
                         <td class="text-end">{{ line.quantity }}</td>
                         <td class="text-end">{{ "{:,.0f}".format(line.unit_price) }}</td>
                         <td class="text-end">{{ "{:,.0f}".format(line.amount) }}</td>
@@ -117,7 +119,7 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="{% if po.status == 'draft' %}7{% else %}6{% endif %}" class="text-center text-muted py-3">
+                        <td colspan="{% if po.status == 'draft' %}8{% else %}7{% endif %}" class="text-center text-muted py-3">
                             尚無明細項目
                         </td>
                     </tr>
@@ -125,7 +127,7 @@
                 </tbody>
                 <tfoot class="table-light">
                     <tr>
-                        <th colspan="4" class="text-end">合計</th>
+                        <th colspan="5" class="text-end">合計</th>
                         <th class="text-end">${{ "{:,.0f}".format(po.total_amount) }}</th>
                         <th colspan="{% if po.status == 'draft' %}2{% else %}1{% endif %}"></th>
                     </tr>
@@ -142,34 +144,43 @@
         <h6 class="mb-0"><i class="bi bi-plus-lg"></i> 新增明細</h6>
     </div>
     <div class="card-body">
-        <form method="post" action="/web/purchases/{{ po.id }}/lines/add">
-            <div class="row g-2 align-items-end">
+        <form method="post" action="/web/purchases/{{ po.id }}/lines/add" id="addLineForm">
+            <!-- Barcode scan row -->
+            <div class="row g-2 mb-2">
+                <div class="col-md-4">
+                    <label for="barcode_input" class="form-label">
+                        <i class="bi bi-upc-scan"></i> 掃碼 / 輸入條碼
+                    </label>
+                    <input type="text" class="form-control" id="barcode_input"
+                           placeholder="掃描或輸入條碼，自動帶入品項" autofocus>
+                </div>
                 <div class="col-md-4">
                     <label for="item_id" class="form-label">品項</label>
                     <select class="form-select" id="item_id" name="item_id" required>
                         <option value="">-- 選擇品項 --</option>
                         {% for item in items %}
-                        <option value="{{ item.id }}">{{ item.barcode }} — {{ item.name }}</option>
+                        <option value="{{ item.id }}" data-barcode="{{ item.barcode }}" data-cost="{{ item.cost }}">{{ item.barcode }} — {{ item.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-1">
                     <label for="quantity" class="form-label">數量</label>
                     <input type="number" class="form-control" id="quantity" name="quantity"
                            value="1" min="1" required>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-1">
                     <label for="unit_price" class="form-label">單價</label>
                     <input type="number" class="form-control" id="unit_price" name="unit_price"
                            value="0" min="0" step="1" required>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-1">
                     <label for="line_notes" class="form-label">備註</label>
                     <input type="text" class="form-control" id="line_notes" name="notes">
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-1">
+                    <label class="form-label">&nbsp;</label>
                     <button type="submit" class="btn btn-success w-100">
-                        <i class="bi bi-plus"></i> 加入
+                        <i class="bi bi-plus"></i>
                     </button>
                 </div>
             </div>
@@ -177,4 +188,48 @@
     </div>
 </div>
 {% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Barcode scan → auto-select item in dropdown
+const barcodeInput = document.getElementById('barcode_input');
+const itemSelect = document.getElementById('item_id');
+const unitPriceInput = document.getElementById('unit_price');
+
+if (barcodeInput && itemSelect) {
+    barcodeInput.addEventListener('change', function() {
+        const barcode = this.value.trim();
+        if (!barcode) return;
+
+        // Find matching option by data-barcode
+        let found = false;
+        for (const opt of itemSelect.options) {
+            if (opt.dataset.barcode === barcode) {
+                itemSelect.value = opt.value;
+                // Auto-fill cost as unit_price
+                if (opt.dataset.cost && opt.dataset.cost !== '0') {
+                    unitPriceInput.value = Math.round(parseFloat(opt.dataset.cost));
+                }
+                found = true;
+                document.getElementById('quantity').focus();
+                break;
+            }
+        }
+
+        if (!found) {
+            alert('找不到條碼：' + barcode);
+            this.select();
+        }
+    });
+
+    // Also trigger on Enter key (for barcode scanner)
+    barcodeInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            this.dispatchEvent(new Event('change'));
+        }
+    });
+}
+</script>
 {% endblock %}

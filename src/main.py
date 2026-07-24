@@ -79,8 +79,9 @@ app.include_router(printing_router)
 
 @app.get("/")
 def root():
-    """Health check endpoint."""
-    return {"status": "ok", "service": "barcode-warehouse-server"}
+    """Redirect to web UI."""
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse("/web/login", status_code=302)
 
 
 @app.get("/items", response_model=List[ItemResponse])

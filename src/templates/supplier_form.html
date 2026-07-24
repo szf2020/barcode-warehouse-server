@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ '編輯供應商' if supplier else '新增供應商' }} — 倉管系統{% endblock %}
+{% block title %}{{ '編輯供應商' if supplier else '新增供應商' }} — SoftSnail 倉管系統{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
@@ -18,7 +18,7 @@
                         <div class="col-md-4">
                             <label for="code" class="form-label">供應商編號 <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="code" name="code"
-                                   value="{{ supplier.code if supplier else '' }}" required
+                                   value="{{ supplier.code if supplier else next_code }}" required
                                    placeholder="e.g. S001">
                         </div>
                         <div class="col-md-8">

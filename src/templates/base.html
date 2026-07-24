@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="{{ 'zh-TW' if lang == 'zh' else 'en' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}倉管系統{% endblock %}</title>
+    <title>{% block title %}SoftSnail {% if lang == 'zh' %}倉管系統{% else %}WMS{% endif %}{% endblock %}</title>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
@@ -16,7 +16,7 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
             <a class="navbar-brand" href="/web/items">
-                <i class="bi bi-upc-scan"></i> 倉管系統
+                <i class="bi bi-upc-scan"></i> SoftSnail {% if lang == 'zh' %}倉管系統{% else %}WMS{% endif %}
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -25,60 +25,72 @@
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
                         <a class="nav-link {% if active_page == 'items' %}active{% endif %}" href="/web/items">
-                            <i class="bi bi-box-seam"></i> 品項管理
+                            <i class="bi bi-box-seam"></i> {% if lang == 'zh' %}庫存{% else %}Inventory{% endif %}
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if active_page == 'customers' %}active{% endif %}" href="/web/customers">
-                            <i class="bi bi-people"></i> 客戶
+                            <i class="bi bi-people"></i> {% if lang == 'zh' %}客戶{% else %}Customers{% endif %}
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if active_page == 'suppliers' %}active{% endif %}" href="/web/suppliers">
-                            <i class="bi bi-truck"></i> 供應商
+                            <i class="bi bi-truck"></i> {% if lang == 'zh' %}供應商{% else %}Suppliers{% endif %}
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if active_page == 'purchases' %}active{% endif %}" href="/web/purchases">
-                            <i class="bi bi-box-arrow-in-down"></i> 進貨
+                            <i class="bi bi-box-arrow-in-down"></i> {% if lang == 'zh' %}進貨{% else %}Purchase{% endif %}
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if active_page == 'quotations' %}active{% endif %}" href="/web/quotations">
-                            <i class="bi bi-file-earmark-text"></i> 報價
+                            <i class="bi bi-file-earmark-text"></i> {% if lang == 'zh' %}報價{% else %}Quote{% endif %}
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if active_page == 'sales' %}active{% endif %}" href="/web/sales">
-                            <i class="bi bi-box-arrow-up"></i> 銷貨
+                            <i class="bi bi-box-arrow-up"></i> {% if lang == 'zh' %}銷貨{% else %}Sales{% endif %}
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if active_page == 'accounting' %}active{% endif %}" href="/web/accounting">
-                            <i class="bi bi-cash-stack"></i> 帳務
+                            <i class="bi bi-cash-stack"></i> {% if lang == 'zh' %}帳務{% else %}Accounting{% endif %}
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if active_page == 'repairs' %}active{% endif %}" href="/web/repairs">
-                            <i class="bi bi-wrench-adjustable"></i> 維修
+                            <i class="bi bi-wrench-adjustable"></i> {% if lang == 'zh' %}維修{% else %}Repair{% endif %}
                         </a>
                     </li>
                     {% if user.role == 'super_admin' %}
                     <li class="nav-item">
                         <a class="nav-link {% if active_page == 'tenants' %}active{% endif %}" href="/web/tenants">
-                            <i class="bi bi-building"></i> 廠商管理
+                            <i class="bi bi-building"></i> {% if lang == 'zh' %}廠商{% else %}Tenants{% endif %}
                         </a>
                     </li>
                     {% endif %}
                     {% if user.role in ['super_admin', 'tenant_admin'] %}
                     <li class="nav-item">
                         <a class="nav-link {% if active_page == 'users' %}active{% endif %}" href="/web/users">
-                            <i class="bi bi-person-gear"></i> 帳號管理
+                            <i class="bi bi-person-badge"></i> {% if lang == 'zh' %}員工{% else %}Staff{% endif %}
                         </a>
                     </li>
                     {% endif %}
                 </ul>
                 <ul class="navbar-nav">
+                    <!-- Language toggle -->
+                    <li class="nav-item">
+                        {% if lang == 'zh' %}
+                        <a class="nav-link" href="/web/lang/en" title="Switch to English">
+                            <i class="bi bi-translate"></i> EN
+                        </a>
+                        {% else %}
+                        <a class="nav-link" href="/web/lang/zh" title="切換中文">
+                            <i class="bi bi-translate"></i> 中
+                        </a>
+                        {% endif %}
+                    </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                             <i class="bi bi-person-circle"></i> {{ user.display_name }}
@@ -92,7 +104,7 @@
                             <li>
                                 <form action="/web/logout" method="post">
                                     <button type="submit" class="dropdown-item text-danger">
-                                        <i class="bi bi-box-arrow-right"></i> 登出
+                                        <i class="bi bi-box-arrow-right"></i> {% if lang == 'zh' %}登出{% else %}Logout{% endif %}
                                     </button>
                                 </form>
                             </li>

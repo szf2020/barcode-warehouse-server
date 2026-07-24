@@ -62,13 +62,26 @@ def get_flashed_messages(request: Request) -> list:
 
 def ctx(request: Request, user: Optional[User] = None, **kwargs) -> dict:
     """Build template context with common variables."""
+    lang = request.session.get("lang", "zh")
     context = {
         "request": request,
         "user": user,
+        "lang": lang,
         "get_flashed_messages": lambda: get_flashed_messages(request),
     }
     context.update(kwargs)
     return context
+
+
+# ─── Language Toggle ──────────────────────────────────────────────────────────
+
+@router.get("/lang/{lang_code}")
+def switch_language(lang_code: str, request: Request):
+    """Switch UI language (zh/en)."""
+    if lang_code in ("zh", "en"):
+        request.session["lang"] = lang_code
+    referer = request.headers.get("referer", "/web/items")
+    return RedirectResponse(referer, status_code=303)
 
 
 # ─── Auth Routes ─────────────────────────────────────────────────────────────
@@ -330,9 +343,25 @@ def tenants_list(request: Request, db: Session = Depends(get_db)):
         return RedirectResponse(url="/web/items", status_code=302)
 
     tenants = db.query(Tenant).order_by(Tenant.created_at.desc()).all()
+
+    # Auto-generate next tenant code
+    from sqlalchemy import func as sqlfunc
+    last = db.query(Tenant.code).filter(
+        Tenant.code.like("T%")
+    ).order_by(Tenant.code.desc()).first()
+    if last and last[0]:
+        try:
+            num = int(last[0].replace("T", "")) + 1
+        except ValueError:
+            num = 1
+    else:
+        num = 1
+    next_code = f"T{num:03d}"
+
     return templates.TemplateResponse("tenants.html", ctx(
         request, user=user,
         tenants=tenants,
+        next_code=next_code,
         active_page="tenants",
     ))
 
