@@ -28,6 +28,22 @@
     </div>
 </div>
 
+<!-- Print buttons -->
+<div class="mb-3 d-flex gap-2 flex-wrap">
+    <form method="post" action="/api/print/repair/{{ ro.id }}/receipt" class="d-inline">
+        <button type="submit" class="btn btn-outline-dark btn-sm">
+            <i class="bi bi-printer"></i> {% if lang == 'zh' %}列印收件單{% else %}Print Receipt{% endif %}
+        </button>
+    </form>
+    {% if ro.status in ['done', 'returned'] %}
+    <form method="post" action="/api/print/repair/{{ ro.id }}/completion" class="d-inline">
+        <button type="submit" class="btn btn-outline-dark btn-sm">
+            <i class="bi bi-printer"></i> {% if lang == 'zh' %}列印完工單{% else %}Print Completion{% endif %}
+        </button>
+    </form>
+    {% endif %}
+</div>
+
 <!-- Status transitions -->
 {% if valid_transitions %}
 <div class="mb-3 d-flex gap-2 flex-wrap">
